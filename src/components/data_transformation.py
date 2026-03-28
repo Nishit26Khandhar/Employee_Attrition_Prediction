@@ -1,0 +1,1 @@
+" COde use to change catagorical Feature into Numerical Feature , to handle OneHot Encoding , to handle Lable Encoding"
