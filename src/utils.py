@@ -3,10 +3,10 @@ import sys
 
 import numpy as np 
 import pandas as pd
-import dill
 import pickle
-from sklearn.metrics import r2_score
+from sklearn.metrics import f1_score,recall_score
 from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 
 from src.exception import CustomException
 
@@ -30,11 +30,21 @@ def evaluate_models(X_train, y_train,X_test,y_test,models,param):
             model = list(models.values())[i]
             para=param[list(models.keys())[i]]
 
-            gs = GridSearchCV(model,para,cv=3)
-            gs.fit(X_train,y_train)
+            gs = RandomizedSearchCV(model,para,
+                scoring='recall_macro',       # f1 balances precision+recall for attrition
+                cv=5,
+                n_iter=30,          # try 30 random combos instead of all
+                n_jobs=-1,          # use all CPU cores
+                random_state=42,
+                refit=True          # refit best params on full train set automatically
+            )
+            gs.fit(X_train, y_train)
+
 
             model.set_params(**gs.best_params_)
             model.fit(X_train,y_train)
+
+            report[list(models.keys())[i]] = gs.best_score_ 
 
             #model.fit(X_train, y_train)  # Train model
 
@@ -42,9 +52,9 @@ def evaluate_models(X_train, y_train,X_test,y_test,models,param):
 
             y_test_pred = model.predict(X_test)
 
-            train_model_score = r2_score(y_train, y_train_pred)
-
-            test_model_score = r2_score(y_test, y_test_pred)
+            train_model_score = recall_score(y_train, y_train_pred)
+            
+            test_model_score  = recall_score(y_test, y_test_pred)
 
             report[list(models.keys())[i]] = test_model_score
 
